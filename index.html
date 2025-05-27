@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthcare Brand Color Palette Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.4.2/chroma.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background: #fafafa;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        input, select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .color-section {
+            background: white;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .section-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1px;
+            background: #eee;
+        }
+        
+        .color-stop {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .color-info {
+            background: rgba(255,255,255,0.9);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            line-height: 1.2;
+        }
+        
+        .contrast-ratio {
+            font-weight: bold;
+            margin-top: 2px;
+        }
+        
+        .contrast-pass {
+            color: #22c55e;
+        }
+        
+        .contrast-fail {
+            color: #ef4444;
+        }
+        
+        .semantic-colors {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1px;
+            background: #eee;
+        }
+        
+        .semantic-color {
+            aspect-ratio: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .chart-preview {
+            height: 200px;
+            margin: 20px;
+            background: white;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .chart-bars {
+            display: flex;
+            align-items: end;
+            height: 120px;
+            gap: 8px;
+        }
+        
+        .chart-bar {
+            width: 30px;
+            border-radius: 4px 4px 0 0;
+        }
+        
+        .method-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .method-option {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        
+        .method-option.active {
+            border-color: #F85E78;
+            background: #fef7f7;
+        }
+        
+        .copy-button {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(0,0,0,0.1);
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .color-stop:hover .copy-button {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Healthcare Brand Color Palette Generator</h1>
+        
+        <div class="controls">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <div class="control-group">
+                    <label for="brandColor">Brand Color:</label>
+                    <input type="color" id="brandColor" value="#F85E78">
+                </div>
+                <div class="control-group">
+                    <label for="grayStops">Gray Stops:</label>
+                    <input type="range" id="grayStops" min="4" max="10" value="6">
+                    <span id="grayStopsValue">6</span>
+                </div>
+                <div class="control-group">
+                    <label for="brandStops">Brand Color Stops:</label>
+                    <input type="range" id="brandStops" min="3" max="9" value="5">
+                    <span id="brandStopsValue">5</span>
+                </div>
+                <div class="control-group">
+                    <label for="grayMethod">Gray Generation Method:</label>
+                    <select id="grayMethod">
+                        <option value="lch">LCH Desaturation</option>
+                        <option value="alpha">Alpha Transparency</option>
+                        <option value="both">Compare Both</option>
+                    </select>
+                </div>
+                <div class="control-group" id="chromaControl">
+                    <label for="grayChroma">Gray Desaturation Level:</label>
+                    <input type="range" id="grayChroma" min="2" max="20" value="8" step="0.5">
+                    <span id="grayChromaValue">8</span>
+                </div>
+                <div class="control-group" id="alphaControl" style="display: none;">
+                    <label for="maxAlpha">Maximum Alpha Level:</label>
+                    <input type="range" id="maxAlpha" min="0.05" max="0.3" value="0.15" step="0.01">
+                    <span id="maxAlphaValue">0.15</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="color-section">
+            <div class="section-header">
+                <span id="grayMethodTitle">LCH Desaturated Grays</span>
+                <div id="backgroundDemo" style="margin-top: 10px; display: none;">
+                    <small>Background test: </small>
+                    <button onclick="changeBackground('#ffffff')" style="background: #fff; border: 1px solid #ccc; width: 20px; height: 20px; margin: 2px;"></button>
+                    <button onclick="changeBackground('#f0f9ff')" style="background: #f0f9ff; border: 1px solid #ccc; width: 20px; height: 20px; margin: 2px;"></button>
+                    <button onclick="changeBackground('#fef3f2')" style="background: #fef3f2; border: 1px solid #ccc; width: 20px; height: 20px; margin: 2px;"></button>
+                </div>
+            </div>
+            <div id="grayPaletteContainer">
+                <div class="color-grid" id="grayPalette"></div>
+                <div class="color-grid" id="grayPaletteAlpha" style="display: none;"></div>
+            </div>
+        </div>
+        
+        <div class="color-section">
+            <div class="section-header">OKLCH Brand Color Variations</div>
+            <div class="color-grid" id="brandPalette"></div>
+        </div>
+        
+        <div class="color-section">
+            <div class="section-header">
+                Semantic Colors
+                <div class="method-selector" style="margin-top: 15px;">
+                    <div class="method-option active" data-method="analogous">Analogous Harmony</div>
+                    <div class="method-option" data-method="chroma-harmonized">Chroma Harmonized</div>
+                    <div class="method-option" data-method="perceptual">Perceptual Mapping</div>
+                    <div class="method-option" data-method="triadic">Triadic</div>
+                </div>
+            </div>
+            <div class="semantic-colors" id="semanticColors"></div>
+        </div>
+        
+        <div class="color-section">
+            <div class="section-header">Chart Color Harmony Preview</div>
+            <div class="chart-preview">
+                <div class="chart-bars" id="chartPreview"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSemanticMethod = 'analogous';
+        let currentBackground = '#ffffff';
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateAllPalettes();
+            
+            // Event listeners
+            document.getElementById('brandColor').addEventListener('input', updateAllPalettes);
+            document.getElementById('grayStops').addEventListener('input', function() {
+                document.getElementById('grayStopsValue').textContent = this.value;
+                updateAllPalettes();
+            });
+            document.getElementById('brandStops').addEventListener('input', function() {
+                document.getElementById('brandStopsValue').textContent = this.value;
+                updateAllPalettes();
+            });
+            document.getElementById('grayChroma').addEventListener('input', function() {
+                document.getElementById('grayChromaValue').textContent = this.value;
+                updateAllPalettes();
+            });
+            document.getElementById('maxAlpha').addEventListener('input', function() {
+                document.getElementById('maxAlphaValue').textContent = this.value;
+                updateAllPalettes();
+            });
+            document.getElementById('grayMethod').addEventListener('change', function() {
+                toggleGrayControls();
+                updateAllPalettes();
+            });
+            
+            // Method selector
+            document.querySelectorAll('.method-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.method-option').forEach(o => o.classList.remove('active'));
+                    this.classList.add('active');
+                    currentSemanticMethod = this.dataset.method;
+                    updateSemanticColors();
+                    updateChartPreview();
+                });
+            });
+        });
+        
+        function toggleGrayControls() {
+            const method = document.getElementById('grayMethod').value;
+            const chromaControl = document.getElementById('chromaControl');
+            const alphaControl = document.getElementById('alphaControl');
+            const backgroundDemo = document.getElementById('backgroundDemo');
+            const title = document.getElementById('grayMethodTitle');
+            
+            if (method === 'lch') {
+                chromaControl.style.display = 'block';
+                alphaControl.style.display = 'none';
+                backgroundDemo.style.display = 'none';
+                title.textContent = 'LCH Desaturated Grays';
+            } else if (method === 'alpha') {
+                chromaControl.style.display = 'none';
+                alphaControl.style.display = 'block';
+                backgroundDemo.style.display = 'block';
+                title.textContent = 'Alpha Transparency Grays';
+            } else {
+                chromaControl.style.display = 'block';
+                alphaControl.style.display = 'block';
+                backgroundDemo.style.display = 'block';
+                title.textContent = 'LCH vs Alpha Comparison';
+            }
+        }
+        
+        function changeBackground(color) {
+            currentBackground = color;
+            updateGrayPalette();
+        }
+        
+        function updateAllPalettes() {
+            updateGrayPalette();
+            updateBrandPalette();
+            updateSemanticColors();
+            updateChartPreview();
+        }
+        
+        function updateGrayPalette() {
+            const brandColor = document.getElementById('brandColor').value;
+            const stops = parseInt(document.getElementById('grayStops').value);
+            const method = document.getElementById('grayMethod').value;
+            
+            const lchContainer = document.getElementById('grayPalette');
+            const alphaContainer = document.getElementById('grayPaletteAlpha');
+            
+            lchContainer.innerHTML = '';
+            alphaContainer.innerHTML = '';
+            
+            if (method === 'lch' || method === 'both') {
+                const chromaLevel = parseFloat(document.getElementById('grayChroma').value);
+                const brand = chroma(brandColor);
+                const brandLCH = brand.lch();
+                
+                // Generate LCH desaturated grays
+                for (let i = 0; i < stops; i++) {
+                    const lightness = 95 - (i * 85 / (stops - 1));
+                    const gray = chroma.lch(lightness, chromaLevel, brandLCH[2] || 0);
+                    
+                    const stop = createColorStop(gray.hex(), `LCH L:${lightness.toFixed(0)}`, i);
+                    lchContainer.appendChild(stop);
+                }
+                
+                lchContainer.style.display = 'grid';
+            } else {
+                lchContainer.style.display = 'none';
+            }
+            
+            if (method === 'alpha' || method === 'both') {
+                const maxAlpha = parseFloat(document.getElementById('maxAlpha').value);
+                const brand = chroma(brandColor);
+                
+                // Generate alpha-based grays
+                for (let i = 0; i < stops; i++) {
+                    const alpha = maxAlpha * (1 - i / (stops - 1));
+                    const alphaColor = brand.alpha(alpha);
+                    
+                    // Calculate what this looks like over the current background
+                    const finalColor = chroma.mix(currentBackground, brandColor, alpha);
+                    
+                    const stop = createAlphaColorStop(
+                        finalColor.hex(), 
+                        alphaColor.css(), 
+                        `α:${alpha.toFixed(2)}`, 
+                        i
+                    );
+                    stop.style.background = `linear-gradient(${alphaColor.css()}, ${alphaColor.css()}), ${currentBackground}`;
+                    alphaContainer.appendChild(stop);
+                }
+                
+                alphaContainer.style.display = 'grid';
+            } else {
+                alphaContainer.style.display = 'none';
+            }
+        }
+        
+        function updateBrandPalette() {
+            const brandColor = document.getElementById('brandColor').value;
+            const stops = parseInt(document.getElementById('brandStops').value);
+            
+            const brand = chroma(brandColor);
+            const [l, c, h] = brand.oklch();
+            
+            const container = document.getElementById('brandPalette');
+            container.innerHTML = '';
+            
+            // Generate OKLCH lightness variations
+            const lightnesses = [];
+            if (stops === 3) {
+                lightnesses.push(Math.min(0.9, l + 0.2), l, Math.max(0.1, l - 0.2));
+            } else if (stops === 4) {
+                lightnesses.push(Math.min(0.9, l + 0.25), Math.min(0.85, l + 0.1), l, Math.max(0.15, l - 0.25));
+            } else {
+                for (let i = 0; i < stops; i++) {
+                    const lightness = Math.min(0.95, Math.max(0.05, l + 0.3 - (i * 0.6 / (stops - 1))));
+                    lightnesses.push(lightness);
+                }
+            }
+            
+            lightnesses.forEach((lightness, i) => {
+                const color = chroma.oklch(lightness, c, h);
+                const stop = createColorStop(color.hex(), `L: ${(lightness * 100).toFixed(0)}`, i);
+                container.appendChild(stop);
+            });
+        }
+        
+        function updateSemanticColors() {
+            const brandColor = document.getElementById('brandColor').value;
+            const brand = chroma(brandColor);
+            const [l, c, h] = brand.lch();
+            
+            const container = document.getElementById('semanticColors');
+            container.innerHTML = '';
+            
+            let semanticColors = {};
+            
+            switch (currentSemanticMethod) {
+                case 'analogous':
+                    semanticColors = {
+                        'Success (Green)': chroma.lch(l, c * 0.8, 130),
+                        'Error (Red)': chroma.lch(l * 0.9, c, 15),
+                        'Warning (Orange)': chroma.lch(l * 1.05, c * 1.1, 50),
+                        'Info (Yellow)': chroma.lch(l * 1.1, c * 0.9, 80)
+                    };
+                    break;
+                    
+                case 'chroma-harmonized':
+                    semanticColors = {
+                        'Success (Green)': chroma.lch(l + 5, c, 130),
+                        'Error (Red)': chroma.lch(l - 5, c, 15),
+                        'Warning (Orange)': chroma.lch(l, c, 50),
+                        'Info (Yellow)': chroma.lch(l + 10, c, 80)
+                    };
+                    break;
+                    
+                case 'perceptual':
+                    semanticColors = {
+                        'Success (Green)': chroma.lch(l + 10, c * 0.7, 140),
+                        'Error (Red)': chroma.lch(l - 10, c * 1.1, 10),
+                        'Warning (Orange)': chroma.lch(l, c * 1.2, 45),
+                        'Info (Yellow)': chroma.lch(l + 15, c * 0.8, 75)
+                    };
+                    break;
+                    
+                case 'triadic':
+                    semanticColors = {
+                        'Success': chroma.lch(l, c * 0.8, (h + 120) % 360),
+                        'Error': chroma.lch(l * 0.9, c, (h + 180) % 360),
+                        'Warning': chroma.lch(l, c * 1.1, (h + 60) % 360),
+                        'Info': chroma.lch(l + 10, c * 0.7, (h + 240) % 360)
+                    };
+                    break;
+            }
+            
+            Object.entries(semanticColors).forEach(([name, color]) => {
+                const stop = createSemanticColorStop(color.hex(), name);
+                container.appendChild(stop);
+            });
+        }
+        
+        function updateChartPreview() {
+            const brandColor = document.getElementById('brandColor').value;
+            const brand = chroma(brandColor);
+            
+            // Generate harmonious colors for charts
+            const chartColors = [];
+            const [l, c, h] = brand.lch();
+            
+            for (let i = 0; i < 6; i++) {
+                const hueShift = i * 60; // Every 60 degrees
+                const newHue = (h + hueShift) % 360;
+                const chartColor = chroma.lch(l, c * 0.9, newHue);
+                chartColors.push(chartColor.hex());
+            }
+            
+            const container = document.getElementById('chartPreview');
+            container.innerHTML = '<div class="chart-bars" id="chartBars"></div>';
+            
+            const barsContainer = document.getElementById('chartBars');
+            chartColors.forEach((color, i) => {
+                const bar = document.createElement('div');
+                bar.className = 'chart-bar';
+                bar.style.backgroundColor = color;
+                bar.style.height = `${30 + i * 15}px`;
+                barsContainer.appendChild(bar);
+            });
+        }
+        
+        function createColorStop(color, label, index) {
+            const stop = document.createElement('div');
+            stop.className = 'color-stop';
+            stop.style.backgroundColor = color;
+            
+            // Calculate contrast ratios
+            const contrastWhite = chroma.contrast(color, '#ffffff');
+            const contrastBlack = chroma.contrast(color, '#000000');
+            const textColor = contrastWhite > contrastBlack ? '#ffffff' : '#000000';
+            
+            const copyButton = document.createElement('button');
+            copyButton.className = 'copy-button';
+            copyButton.textContent = 'Copy';
+            copyButton.onclick = () => navigator.clipboard.writeText(color);
+            
+            stop.innerHTML = `
+                <div class="color-info" style="color: ${textColor}; background: ${textColor === '#ffffff' ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)'};">
+                    <div>${color.toUpperCase()}</div>
+                    <div>${label}</div>
+                    <div class="contrast-ratio ${contrastWhite >= 4.5 ? 'contrast-pass' : 'contrast-fail'}">
+                        ${contrastWhite.toFixed(1)}:1
+                    </div>
+                </div>
+            `;
+            
+            stop.appendChild(copyButton);
+            return stop;
+        }
+        
+        function createAlphaColorStop(finalColor, alphaCSS, label, index) {
+            const stop = document.createElement('div');
+            stop.className = 'color-stop';
+            
+            // Calculate contrast ratios based on the final rendered color
+            const contrastWhite = chroma.contrast(finalColor, '#ffffff');
+            const contrastBlack = chroma.contrast(finalColor, '#000000');
+            const textColor = contrastWhite > contrastBlack ? '#ffffff' : '#000000';
+            
+            const copyButton = document.createElement('button');
+            copyButton.className = 'copy-button';
+            copyButton.textContent = 'Copy CSS';
+            copyButton.onclick = () => navigator.clipboard.writeText(alphaCSS);
+            
+            stop.innerHTML = `
+                <div class="color-info" style="color: ${textColor}; background: ${textColor === '#ffffff' ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)'};">
+                    <div>${alphaCSS}</div>
+                    <div>${label}</div>
+                    <div class="contrast-ratio ${contrastWhite >= 4.5 ? 'contrast-pass' : 'contrast-fail'}">
+                        ${contrastWhite.toFixed(1)}:1
+                    </div>
+                </div>
+            `;
+            
+            stop.appendChild(copyButton);
+            return stop;
+        }
+        
+        function createSemanticColorStop(color, name) {
+            const stop = document.createElement('div');
+            stop.className = 'semantic-color';
+            stop.style.backgroundColor = color;
+            
+            const contrastWhite = chroma.contrast(color, '#ffffff');
+            const textColor = contrastWhite > 3 ? '#ffffff' : '#000000';
+            
+            const copyButton = document.createElement('button');
+            copyButton.className = 'copy-button';
+            copyButton.textContent = 'Copy';
+            copyButton.onclick = () => navigator.clipboard.writeText(color);
+            
+            stop.innerHTML = `
+                <div class="color-info" style="color: ${textColor}; background: ${textColor === '#ffffff' ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)'};">
+                    <div><strong>${name}</strong></div>
+                    <div>${color.toUpperCase()}</div>
+                    <div class="contrast-ratio ${contrastWhite >= 4.5 ? 'contrast-pass' : 'contrast-fail'}">
+                        ${contrastWhite.toFixed(1)}:1
+                    </div>
+                </div>
+            `;
+            
+            stop.appendChild(copyButton);
+            return stop;
+        }
+    </script>
+</body>
+</html>
